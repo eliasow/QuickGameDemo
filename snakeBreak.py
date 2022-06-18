@@ -11,7 +11,7 @@ class Snake(object):
         self.h = h
         self.color = color
         self.direction = [0, 0]
-        for i in range(8):
+        for i in range(12):
             snakePositions.append([40, 50])
 
     def draw(self, window):
@@ -21,10 +21,12 @@ class Snake(object):
 
     def handleSnakeMovement(self):
         temp = snakePositions[0]
-        snakePositions[0] = [snakePosition[0][0] + (self.direction[0] * 10), snakePosition[0][1] + (self.direction[1] * 10)]
-        for i in range( 1,len(snakePositions) - 1):
-            if (snakePositions[i][0] != snakePositions[i - 1][0] and snakePositions[i][1] != snakePositions[i - 1][1]):
-                snakePositions[i] = snakePositions[i - 1]
+        snakePositions[0] = [snakePositions[0][0] + (self.direction[0]), snakePositions[0][1] + (self.direction[1])]
+        for i in range( 1,len(snakePositions) ):
+            if (snakePositions[i][0] != temp[0] or snakePositions[i][1] != temp[1]):
+                newTemp = snakePositions[i]
+                snakePositions[i] = temp
+                temp = newTemp
 
 
 class Ball(object):
@@ -34,8 +36,8 @@ class Ball(object):
         self.w = w
         self.h = h
         self.color = color
-        self.xspeed = 0
-        self.yspeed = 0
+        self.xspeed = 1
+        self.yspeed = 1
 
     def draw(self, window):
         pygame.draw.rect(window, self.color, [self.x, self.y, self.w, self.h])
@@ -61,11 +63,13 @@ def wallSetup():
     bricks = []
     for i in range(8):
         for j in range(12):
-            bricks.append(Brick(10 + j * 79, 50 + i * 35, 70, 25, (255, 255, 0)))
+            bricks.append(Brick(10 + j * 82, 50 + i * 35, 72, 25, (255, 255, 0)))
 
 def updateWindow():
     global bricks
     window.blit(background,(0,0))
+    ball.handleBallMovement()
+    snake.handleSnakeMovement()
     ball.draw(window)
     snake.draw(window)
     for block in bricks:
@@ -92,15 +96,21 @@ if __name__ == '__main__':
 
     running = True
     while(running):
-        clock.tick(100)
+        clock.tick(10)
         window.blit(background,(0,0))
-
+        updateWindow()
         for event in pygame.event.get():
             if event.type ==  pygame.QUIT:
                 running = False
                 pygame.quit()
             elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_UP and self.direction != [1, 0]:
-                    self.direction = [-1,0]
-        updateWindow()
+                if event.key == pygame.K_UP and snake.direction != [0, 1]:
+                    snake.direction = [0,-1]
+                elif event.key == pygame.K_DOWN and snake.direction != [0, -1]:
+                    snake.direction = [0,1]
+                elif event.key == pygame.K_LEFT and snake.direction != [1, 0]:
+                    snake.direction = [-1,0]
+                elif event.key == pygame.K_RIGHT and snake.direction != [-1, 0]:
+                    snake.direction = [1,0]
+            updateWindow()
     pygame.quit()
