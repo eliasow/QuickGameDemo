@@ -4,6 +4,8 @@ bricks = []
 
 snakePositions = []
 
+gameOver = False
+
 class Snake(object):
     def __init__(self, w, h, color):
         global snakePositions
@@ -44,8 +46,8 @@ class Ball(object):
         self.w = w
         self.h = h
         self.color = color
-        self.xspeed = 2
-        self.yspeed = 2
+        self.xspeed = 3
+        self.yspeed = 3
 
     def draw(self, window):
         pygame.draw.rect(window, self.color, [self.x, self.y, self.w, self.h])
@@ -75,7 +77,17 @@ def wallSetup():
 
 def updateWindow():
     global bricks
+    global gameOver
     window.blit(background,(0,0))
+    if (gameOver):
+        font = pygame.font.Font(None, 64)
+        text = font.render(("Better luck next time!"), 100, (255,255,255))
+        window.blit(text, (40, 400))   
+        font = pygame.font.Font(None, 40)
+        text = font.render(("Press r to restart or q to quit"), 100, (255,255,255))
+        window.blit(text, (40, 600))   
+        pygame.display.update()
+        return
     ball.handleBallMovement()
     snake.handleSnakeMovement()
     ball.draw(window)
@@ -97,7 +109,7 @@ def handleEnd():
                 running = False
             elif event.key == pygame.K_r:
                 main()
-        updateWindow()
+    updateWindow()
 
 
 if __name__ == '__main__':
@@ -151,11 +163,7 @@ if __name__ == '__main__':
             ball.xspeed = (ball.xspeed * -1)
 
         if ball.y > 800:
-            font = pygame.font.Font(None, 64)
-            text = font.render(("Better luck next time!"), 100, (255,255,255))
-            window.blit(text, (40, 40))   
-            pygame.display.update()  
-            handleEnd()
+            gameOver = True
 
         for block in bricks:
             if not block.hit:
@@ -163,7 +171,7 @@ if __name__ == '__main__':
                     block.color = (0,0,0)
                     block.hit = True
                     ball.yspeed = ball.yspeed * -1
-                    ball.xspeed += .1
+                    ball.xspeed += .2
                     Score += 1
 
         updateWindow()
@@ -180,6 +188,15 @@ if __name__ == '__main__':
                     snake.direction = [-1,0]
                 elif event.key == pygame.K_RIGHT and snake.direction != [-1, 0]:
                     snake.direction = [1,0]
+                if event.key == pygame.K_q:
+                    pygame.quit()
+                elif event.key == pygame.K_r:
+                    gameOver = False
+                    wallSetup()
+                    Score = 0
+                    snakePositions = []
+                    ball = Ball(10, 500, 10, 10, (255, 255, 255))
+                    snake = Snake(10, 10 , (0, 0, 200))
             updateWindow()
     pygame.quit()
 
