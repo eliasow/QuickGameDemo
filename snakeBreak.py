@@ -1,36 +1,35 @@
 import pygame
+import random
 
 bricks = []
-
 snakePositions = []
-
 gameOver = False
 
 class Snake(object):
-    def __init__(self, w, h, color):
+    def __init__(self, w, h):
         global snakePositions
         self.w = w
         self.h = h
-        self.color = color
         self.direction = [0, 0]
         for i in range(16):
             snakePositions.append([40, 50])
 
     def draw(self, window):
+        color = 10
         for position in snakePositions: 
-            pygame.draw.rect(window, self.color, [position[0]*10, position[1]*10, self.w, self.h])
-
+            pygame.draw.rect(window, (0,255,color), [position[0]*10, position[1]*10, self.w, self.h])
+            color += 15
 
     def handleSnakeMovement(self):
         temp = snakePositions[0]
         snakePositions[0] = [snakePositions[0][0] + (self.direction[0]), snakePositions[0][1] + (self.direction[1])]
         if snakePositions[0][0] < 1:
-            snakePositions[0][0] = 100
-        if snakePositions[0][0] > 100:
+            snakePositions[0][0] = 99
+        if snakePositions[0][0] >= 100:
             snakePositions[0][0] = 1
         if snakePositions[0][1] < 36:
-            snakePositions[0][1] = 76
-        if snakePositions[0][1] > 76:
+            snakePositions[0][1] = 78
+        if snakePositions[0][1] > 78:
             snakePositions[0][1] = 36
         for i in range( 1,len(snakePositions) ):
             if (snakePositions[i][0] != temp[0] or snakePositions[i][1] != temp[1]):
@@ -41,13 +40,13 @@ class Snake(object):
 
 class Ball(object):
     def __init__(self,x,y,w,h,color):
-        self.x = x
-        self.y = y
+        self.x = random.randint(1,100) * 10
+        self.y = 350
         self.w = w
         self.h = h
         self.color = color
-        self.xspeed = 3
-        self.yspeed = 3
+        self.xspeed = random.randint(2,4)
+        self.yspeed = random.randint(2,4)
 
     def draw(self, window):
         pygame.draw.rect(window, self.color, [self.x, self.y, self.w, self.h])
@@ -57,12 +56,12 @@ class Ball(object):
         self.x += self.xspeed
 
 class Brick(object):
-    def __init__(self,x,y,w,h,color):
+    def __init__(self,x,y,w,h):
         self.x = x
         self.y = y
         self.w = w
         self.h = h
-        self.color = color
+        self.color = (255,100,0)
         self.hit = False
 
     def draw(self, window):
@@ -73,7 +72,7 @@ def wallSetup():
     bricks = []
     for i in range(8):
         for j in range(12):
-            bricks.append(Brick(10 + j * 82, 50 + i * 35, 72, 25, (255, 255, 0)))
+            bricks.append(Brick(10 + j * 82, 50 + i * 35, 72, 25))
 
 def updateWindow():
     global bricks
@@ -84,7 +83,7 @@ def updateWindow():
         text = font.render(("Better luck next time!"), 100, (255,255,255))
         window.blit(text, (40, 400))   
         font = pygame.font.Font(None, 40)
-        text = font.render(("Press r to restart or q to quit"), 100, (255,255,255))
+        text = font.render(("Press R to restart or Q to quit"), 100, (255,255,255))
         window.blit(text, (40, 600))   
         pygame.display.update()
         return
@@ -96,21 +95,9 @@ def updateWindow():
         if block.hit == False:
             block.draw(window)
     font = pygame.font.Font(None, 32)
-    #livesText = font.render(("Lives:"+str(Lives)), 100, (255,255,255))
     scoreText = font.render(("Score:"+str(Score)), 100, (255,255,255))
-    #window.blit(livesText, (10, 20))
     window.blit(scoreText, (10, 20))
     pygame.display.update()
-
-def handleEnd():
-    for event in pygame.event.get():
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_q:
-                running = False
-            elif event.key == pygame.K_r:
-                main()
-    updateWindow()
-
 
 if __name__ == '__main__':
 
@@ -128,7 +115,7 @@ if __name__ == '__main__':
     clock = pygame.time.Clock()
 
     ball = Ball(10, 500, 10, 10, (255, 255, 255))
-    snake = Snake(10, 10 , (0, 0, 200))
+    snake = Snake(10, 10)
     wallSetup()
     updateWindow()
 
@@ -151,30 +138,54 @@ if __name__ == '__main__':
                         ball.yspeed = (ball.yspeed * -1)
                         break
                     else:
+                        print("off")
                         if (not (([round(ball.x + ball.xspeed,-1) // 10 , round(ball.y - ball.yspeed,-1) // 10] ) in snakePositions)):
                             ball.yspeed = (ball.yspeed * -1)
                         if (not (([round(ball.x - ball.xspeed, -1) // 10, round(ball.y + ball.yspeed, -1) // 10] ) in snakePositions)):
                             ball.xspeed = (ball.xspeed * -1)
+                        break
 
-        if ball.x < 2:
+        ###COLLISIONS WITH SIDES 
+        if (ball.x < 1):
+            ball.x = 1
             ball.xspeed = (ball.xspeed * -1)
-        
-        if ball.x > 995:
-            ball.xspeed = (ball.xspeed * -1)
+            if ball.yspeed > 0:
+                ball.yspeed += .1
+            else:
+                ball.yspeed -= .1
 
+        if (ball.x > 990):
+            ball.x = 990
+            ball.xspeed = (ball.xspeed * -1)
+            if ball.yspeed > 0:
+                ball.yspeed += .1
+            else:
+                ball.yspeed -= .1
+
+        ###COLLISION WITH CEILING
+        if (ball.y <= 0):
+            ball.yspeed = (ball.yspeed * -1)
+
+        ###BALL LOST
         if ball.y > 800:
             gameOver = True
 
+        ###BRICK COLLISIONS
         for block in bricks:
             if not block.hit:
                 if ((ball.x >= block.x - 10 and ball.x  <= block.x + 73) and (ball.y >= block.y - 3 and ball.y  <= block.y + 26)):
                     block.color = (0,0,0)
                     block.hit = True
                     ball.yspeed = ball.yspeed * -1
-                    ball.xspeed += .2
+                    if ball.xspeed > 0:
+                        ball.xspeed += .1
+                    else:
+                        ball.xspeed -= .1
                     Score += 1
 
         updateWindow()
+
+        ###HANDLE INPUT
         for event in pygame.event.get():
             if event.type ==  pygame.QUIT:
                 running = False
@@ -196,7 +207,7 @@ if __name__ == '__main__':
                     Score = 0
                     snakePositions = []
                     ball = Ball(10, 500, 10, 10, (255, 255, 255))
-                    snake = Snake(10, 10 , (0, 0, 200))
+                    snake = Snake(10, 10)
             updateWindow()
     pygame.quit()
 
