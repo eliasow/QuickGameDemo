@@ -1,24 +1,27 @@
 import pygame
 import random
 
+###GLOBAL VARIABLES
 bricks = []
 snakePositions = []
 gameOver = False
 
+###OBJECT/CLASS DEFENITIONS
 class Snake(object):
-    def __init__(self, w, h):
+    def __init__(self):
         global snakePositions
-        self.w = w
-        self.h = h
         self.direction = [0, 0]
-        for i in range(16):
+        for i in range(17):
             snakePositions.append([40, 50])
 
     def draw(self, window):
         color = 10
+        index = 0
         for position in snakePositions: 
-            pygame.draw.rect(window, (0,255,color), [position[0]*10, position[1]*10, self.w, self.h])
-            color += 15
+            if index != len(snakePositions) - 1:
+                pygame.draw.rect(window, (color / 2,255,color), [position[0]*10, position[1]*10, 10, 10])
+                color += 15
+                index += 1
 
     def handleSnakeMovement(self):
         temp = snakePositions[0]
@@ -36,7 +39,6 @@ class Snake(object):
                 newTemp = snakePositions[i]
                 snakePositions[i] = temp
                 temp = newTemp
-
 
 class Ball(object):
     def __init__(self,x,y,w,h,color):
@@ -56,37 +58,47 @@ class Ball(object):
         self.x += self.xspeed
 
 class Brick(object):
-    def __init__(self,x,y,w,h):
+    def __init__(self,x,y,w,h,color):
         self.x = x
         self.y = y
         self.w = w
         self.h = h
-        self.color = (255,100,0)
+        self.color = color
         self.hit = False
 
     def draw(self, window):
         pygame.draw.rect(window, self.color, [self.x, self.y, self.w, self.h])
 
+###HELPER FUNCTIONS
+
+###DRAW GAME OVER SCREEN
+def gameOverScreen():
+    font = pygame.font.Font(None, 64)
+    text = font.render(("Better luck next time!"), 100, (255,255,255))
+    window.blit(text, (40, 400))   
+    font = pygame.font.Font(None, 40)
+    text = font.render(("Press R to restart or Q to quit"), 100, (255,255,255))
+    window.blit(text, (40, 600))  
+    scoreText = font.render(("You got a final score of "+str(Score)+"."), 100, (255,255,255))
+    window.blit(scoreText, (40, 520)) 
+    pygame.display.update()
+    return
+    
+###SETUP BRICKS FOR START OF GAME
 def wallSetup():
     global bricks
     bricks = []
     for i in range(8):
         for j in range(12):
-            bricks.append(Brick(10 + j * 82, 50 + i * 35, 72, 25))
+            bricks.append(Brick(10 + j * 82, 50 + i * 35, 72, 25, (255,100 + i * 5, i * 15)))
 
+###DRAW CURRENT GAME STATE
 def updateWindow():
     global bricks
     global gameOver
     window.blit(background,(0,0))
     if (gameOver):
-        font = pygame.font.Font(None, 64)
-        text = font.render(("Better luck next time!"), 100, (255,255,255))
-        window.blit(text, (40, 400))   
-        font = pygame.font.Font(None, 40)
-        text = font.render(("Press R to restart or Q to quit"), 100, (255,255,255))
-        window.blit(text, (40, 600))   
-        pygame.display.update()
-        return
+        return gameOverScreen()
     ball.handleBallMovement()
     snake.handleSnakeMovement()
     ball.draw(window)
@@ -99,15 +111,22 @@ def updateWindow():
     window.blit(scoreText, (10, 20))
     pygame.display.update()
 
+###MAIN GAME LOGIC
 if __name__ == '__main__':
 
     Score = 0
-
-    pygame.init()
-
+    
     width = 1000
     height = 800
 
+    pygame.init()
+    ###SOUND SETUP
+    pygame.mixer.init()
+    bounce = pygame.mixer.Sound('sounds/bounce.wav')
+    snakeSound = pygame.mixer.Sound('sounds/snake.wav')
+    bounce.set_volume(.1)
+    snakeSound.set_volume(.1)
+    ###IMAGE SETUP
     window = pygame.display.set_mode((width,height))
     pygame.display.set_caption("Snake-Break")
     background = pygame.image.load('images/background.jpg')
@@ -115,34 +134,58 @@ if __name__ == '__main__':
     clock = pygame.time.Clock()
 
     ball = Ball(10, 500, 10, 10, (255, 255, 255))
-    snake = Snake(10, 10)
+    snake = Snake()
     wallSetup()
     updateWindow()
 
     running = True
+
+    ###CORE LOOP
     while(running):
+
         clock.tick(10)
         window.blit(background,(0,0))
 
         ### HANDLE COLLISIONS 
         for i in range(len(snakePositions)):
-            if ((ball.x / 10 >= snakePositions[i][0] - 1 and ball.x / 10 <= snakePositions[i][0] + 1) and (ball.y / 10 >= snakePositions[i][1] - 1 and ball.y / 10 <= snakePositions[i][1] + 1)):
+            tolerance = .8
+            if ((ball.x / 10 >= snakePositions[i][0] - tolerance and ball.x / 10 <= snakePositions[i][0] + tolerance) and (ball.y / 10 >= snakePositions[i][1] - tolerance and ball.y / 10 <= snakePositions[i][1] + tolerance)):
+                ###HEAD OF SNAKE
+                if (i == 0):
+                    ball.x += (snake.direction[0] * 10)
+                    ball.y += (snake.direction[1] * 10)
+                    if ((snake.direction[0] < 0 and ball.xspeed > 0) or (snake.direction[0] > 0 and ball.xspeed < 0)):
+                        ball.xspeed *= -1
+                    if ((snake.direction[1] < 0 and ball.yspeed > 0) or (snake.direction[1] > 0 and ball.yspeed < 0)):
+                        ball.yspeed *= -1
+                    ball.handleBallMovement()
+                    pygame.mixer.Sound.play(snakeSound)
+                    break
+                ###BODY OF SNAKE
                 if i > 0 and i < len(snakePositions) - 1:
                     cur = snakePositions[i]
                     prev = snakePositions[i-1]
                     nxt = snakePositions[i + 1]
+                    ###HORIZONTAL SNAKE
                     if (prev[0] == cur[0] == nxt[0]):
                         ball.xspeed = (ball.xspeed * -1)
+                        ball.handleBallMovement()
+                        pygame.mixer.Sound.play(snakeSound)
                         break
+                    ###VERTICAL SNAKE
                     elif (prev[1] == cur[1] == nxt[1]):
                         ball.yspeed = (ball.yspeed * -1)
+                        ball.handleBallMovement()
+                        pygame.mixer.Sound.play(snakeSound)
                         break
+                    ###CORNER SNAKE
                     else:
-                        print("off")
                         if (not (([round(ball.x + ball.xspeed,-1) // 10 , round(ball.y - ball.yspeed,-1) // 10] ) in snakePositions)):
                             ball.yspeed = (ball.yspeed * -1)
                         if (not (([round(ball.x - ball.xspeed, -1) // 10, round(ball.y + ball.yspeed, -1) // 10] ) in snakePositions)):
                             ball.xspeed = (ball.xspeed * -1)
+                        ball.handleBallMovement()
+                        pygame.mixer.Sound.play(snakeSound)
                         break
 
         ###COLLISIONS WITH SIDES 
@@ -154,8 +197,8 @@ if __name__ == '__main__':
             else:
                 ball.yspeed -= .1
 
-        if (ball.x > 990):
-            ball.x = 990
+        if (ball.x > 988):
+            ball.x = 988
             ball.xspeed = (ball.xspeed * -1)
             if ball.yspeed > 0:
                 ball.yspeed += .1
@@ -173,7 +216,8 @@ if __name__ == '__main__':
         ###BRICK COLLISIONS
         for block in bricks:
             if not block.hit:
-                if ((ball.x >= block.x - 10 and ball.x  <= block.x + 73) and (ball.y >= block.y - 3 and ball.y  <= block.y + 26)):
+                if ((ball.x >= block.x - 10 and ball.x  <= block.x + 73) and (ball.y >= block.y - 10 and ball.y  <= block.y + 26)):
+                    pygame.mixer.Sound.play(bounce)
                     block.color = (0,0,0)
                     block.hit = True
                     ball.yspeed = ball.yspeed * -1
@@ -207,7 +251,7 @@ if __name__ == '__main__':
                     Score = 0
                     snakePositions = []
                     ball = Ball(10, 500, 10, 10, (255, 255, 255))
-                    snake = Snake(10, 10)
+                    snake = Snake()
             updateWindow()
     pygame.quit()
 
